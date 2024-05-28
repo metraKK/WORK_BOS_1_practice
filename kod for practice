@@ -1,0 +1,69 @@
+#!/bin/bash
+
+# Функция для вывода справки
+print_help()
+{
+    echo "Usage: $(basename "$0") [OPTIONS]"
+    echo "Options:"
+    echo "  -u, --users          Display list of users and their home directories sorted alphabetically."
+    echo "  -p, --processes      Display list of running processes sorted by their ID."
+    echo "  -h, --help           Display this help message and exit."
+    echo "  -l PATH, --log PATH  Redirect output to a file at the specified PATH."
+    echo "  -e PATH, --errors PATH Redirect errors to a file at the specified PATH."
+    exit 0
+}
+
+# Функция для вывода списка пользователей и их домашних директорий
+display_users()
+{
+    cat /etc/passwd | cut -d: -f1,6 | sort
+}
+
+# Функция для вывода списка запущенных процессов
+display_processes()
+{
+    ps -e --sort=pid
+}
+
+# Парсинг аргументов командной строки
+while getopts ":uphl:e:-:" opt; do
+    case $opt in
+        u | -u | -\-users)
+            display_users
+            ;;
+        p | -p | -\-processes)
+            display_processes
+            ;;
+        h | -h | -\-help)
+            print_help
+            ;;
+        l | -l | -\-log)
+            log_path=$OPTARG
+            ;;
+        e | -e | -\-errors)
+            error_path=$OPTARG
+            ;;
+        :)
+            echo "Option -$OPTARG requires an argument." >&2
+            exit 1
+            ;;
+        ?)
+            echo "Invalid option: -$OPTARG" >&2
+            exit 1
+            ;;
+    esac
+done
+
+# Перенаправление вывода и ошибок, если указаны соответствующие аргументы
+if [ -n "$log_path" ]; then
+    exec > "$log_path"
+fi
+
+if [ -n "$error_path" ]; then
+    exec 2> "$error_path"
+fi
+
+# Если скрипт запущен без аргументов, вывести справку
+if [ $# -eq 0 ]; then
+    print_help
+fi
